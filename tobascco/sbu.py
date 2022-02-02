@@ -3,6 +3,8 @@ import configparser
 import itertools
 from logging import debug, error
 
+import rdkit
+from rdkit import Chem
 import numpy as np
 from numpy import arccos, cos, pi, sin
 from scipy.spatial import distance
@@ -45,8 +47,9 @@ class SBU_list:
                 return sbu
         raise Exception("Could not find the SBU with the identifier %s" % (identifier))
 
+# https://www.rdkit.org/docs/source/rdkit.Chem.rdchem.html#rdkit.Chem.rdchem.Mol
 
-class SBU:
+class SBU(Chem.rdchem.Mol):
     """Contains atom information, connectivity of a Secondary Building Unit."""
 
     def __init__(self, name=None):
