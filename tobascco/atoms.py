@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-
 from .element_properties import WEIGHT
 
 __all__ = ["Atom"]
@@ -52,6 +51,14 @@ class Atom(object):
         self.element = line[0]
         for i, c in enumerate(line[1:]):
             self.coordinates[i] = float(c)
+
+    def from_rdmol(Atom):
+        """Extract atom information from rdmol.Chem.Atom class.
+
+        """
+        # unfortunately the positions are not a property of the rdkit Atom. (jeez)
+
+
 
     def rotate(self, R):
         self.coordinates[:3] = np.dot(R[:3, :3], self.coordinates[:3])
