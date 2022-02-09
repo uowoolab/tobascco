@@ -47,10 +47,11 @@ class SBU_list(object):
 
 # https://www.rdkit.org/docs/source/rdkit.Chem.rdchem.html#rdkit.Chem.rdchem.Mol
 
-class SBU(Chem.rdchem.Mol):
+class SBU(Chem.rdchem.RWMol):
     """Contains atom information, connectivity of a Secondary Building Unit."""
 
     def __init__(self, name=None):
+        Chem.rdchem.RWMol.__init__()
         self.name = name
         self.identifier = 0
         self.index = 0
@@ -65,6 +66,23 @@ class SBU(Chem.rdchem.Mol):
         self.connect_points = []
         self.edge_assignments = []
         self.vertex_id = None
+
+    def organic_from_file(self, filename, interactive=False):
+        """Currently works with .mol files only.
+        Future work to expand to other file definitions if necessary.
+
+        filename - self explanatory (extension should be .mol)
+        interactive - If true, will prompt user with questions if the
+                      molecule seems strange.
+
+        """
+
+        initmol = Chem.RWMol(Chem.MolFromMolfile(filename))
+        # how to insert this into 'self'?
+
+        # sanitize system before copying it to 'self' once things are 
+        # deleted, the indices are all wrong.
+
 
     def from_config(self, section, cfgdic):
         """take atom and connectivity information from a config file"""
