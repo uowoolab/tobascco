@@ -45,8 +45,9 @@ class SBU_list(object):
                 return sbu
         raise Exception("Could not find the SBU with the identifier %s" % (identifier))
 
+# https://www.rdkit.org/docs/source/rdkit.Chem.rdchem.html#rdkit.Chem.rdchem.Mol
 
-class SBU(rdkit.Chem.rdchem.RWMol):
+class SBU(Chem.rdchem.Mol):
     """Contains atom information, connectivity of a Secondary Building Unit."""
 
     def __init__(self, name=None):

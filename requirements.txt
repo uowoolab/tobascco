@@ -1,3 +1,5 @@
+mypy
+rdkit
 sympy
 numpy
 rdkit-pypi
