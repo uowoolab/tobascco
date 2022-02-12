@@ -10,7 +10,7 @@ from scipy.spatial import distance
 
 from .atoms import Atom
 from .connectpoints import ConnectPoint
-from .element_properties import Radii
+from .element_properties import Radii, ATOMIC_NUMBER
 
 class SBU_list(object):
     def __init__(self, sbu_list):
@@ -49,16 +49,22 @@ class SBU_list(object):
 
 class SBU(Chem.rdchem.RWMol):
     """Contains atom information, connectivity of a Secondary Building Unit."""
+    phosphonate = Chem.MolFromSmiles('P(O)(O)=O')
+    carboxylate = Chem.MolFromSmiles('C(O)(O)')
+    functional_groups = [phosphonate,
+                         carboxylate
+                         ]
+    # how to deal with nitrogens in heterocycles?
 
-    def __init__(self, name=None):
-        Chem.rdchem.RWMol.__init__()
-        self.name = name
-        self.identifier = 0
-        self.index = 0
-        self.topology = None
-        self.charge = 0.0
-        self.parent = None
-        self.is_metal = False
+    def __init__(self, *args, **kwargs):
+        Chem.rdchem.RWMol.__init__(self, *args, **kwargs)
+        self.name = kwargs.get('name', None) 
+        self.identifier = kwargs.get('identifier', 0)
+        self.index = kwargs.get('index', 0)
+        self.topology = kwargs.get('topology', None) 
+        self.charge = kwargs.get('charge', 0)
+        self.parent = kwargs.get('parent', None)
+        self.is_metal = kwargs.get('is_metal', False)
         self.atoms = []
         # child SBUs which are associated with this one through self.parent
         self.children = []
@@ -79,10 +85,85 @@ class SBU(Chem.rdchem.RWMol):
 
         initmol = Chem.RWMol(Chem.MolFromMolfile(filename))
         # how to insert this into 'self'?
-
+        self.__init__(initmol)
         # sanitize system before copying it to 'self' once things are 
         # deleted, the indices are all wrong.
+        hlbonds = []
+        del_atoms = []
+        # search for coordinating functional groups.
+        for group in self.functional_groups:
+            if self.HasSubstructMatch(group):
+                matches = self.GetSubstructMatches(group)
+                # atom that connects to the SBU? always the first one?
+                for match in matches:
+                    iat = self.GetAtomWithIdx(match[0])
+                    for bond in iat.GetBonds():
+                        xi = bond.GetEndAtomIdx()
+                        if (xi not in match[1:]):
+                            gid = xi
+                            hlbonds.append(bond.GetIdx())
+                    del_atms += match
+                    x,y = self.GetConformer().GetPositions()[[xi,match[0]],:]
+                    vec = (y-x)/np.linalg.norm(y-x)
 
+                    # create a connect point.
+                    connect_point = ConnectPoint()
+                    connect_point.origin[:3] = x
+                    connect_point.z[:3] = vec
+                    self.connect_points.append(connect_point)
+        [self.RemoveAtom(i) for i in reversed(sorted(set(del_atms)))]
+        # the init below doesn't help.
+        self.__init__(self.GetMol())
+
+        # append atoms (probably should rework other routines to
+        # adapt to the RDKit class, but this is easier)
+        for atom in self.GetAtoms():
+            x,y,z = self.GetConformer().GetPositions()[atom.GetIdx()]
+            element = ATOMIC_NUMBER[atom.GetAtomicNumber()]
+            newatom = Atom()
+            newatom.index = idx
+            newatom.sbu_index = self.identifier
+            newatom.sbu_metal = self.is_metal
+            newatom.coordinates = np.array([x,y,z])
+            self.atoms.append(newatom)
+
+        # append bonds
+        for bond in self.GetBonds():
+            a,b = (bond.GetBeginAtomIdx(), bond.GetEndAtomIdx())
+            if a in []:
+
+            if b in []:
+
+            self.bonds
+            b = tuple(sorted((a,b)))
+            self.bonds[b] = str(bond.GetBondType())[0]
+    
+    """
+    Well THAT's confusing...
+
+    AROMATIC = rdkit.Chem.rdchem.BondType.AROMATIC
+    DATIVE = rdkit.Chem.rdchem.BondType.DATIVE
+    DATIVEL = rdkit.Chem.rdchem.BondType.DATIVEL
+    DATIVEONE = rdkit.Chem.rdchem.BondType.DATIVEONE
+    DATIVER = rdkit.Chem.rdchem.BondType.DATIVER
+    DOUBLE = rdkit.Chem.rdchem.BondType.DOUBLE
+    FIVEANDAHALF = rdkit.Chem.rdchem.BondType.FIVEANDAHALF
+    FOURANDAHALF = rdkit.Chem.rdchem.BondType.FOURANDAHALF
+    HEXTUPLE = rdkit.Chem.rdchem.BondType.HEXTUPLE
+    HYDROGEN = rdkit.Chem.rdchem.BondType.HYDROGEN
+    IONIC = rdkit.Chem.rdchem.BondType.IONIC
+    ONEANDAHALF = rdkit.Chem.rdchem.BondType.ONEANDAHALF
+    OTHER = rdkit.Chem.rdchem.BondType.OTHER
+    QUADRUPLE = rdkit.Chem.rdchem.BondType.QUADRUPLE
+    QUINTUPLE = rdkit.Chem.rdchem.BondType.QUINTUPLE
+    SINGLE = rdkit.Chem.rdchem.BondType.SINGLE
+    THREEANDAHALF = rdkit.Chem.rdchem.BondType.THREEANDAHALF
+    THREECENTER = rdkit.Chem.rdchem.BondType.THREECENTER
+    TRIPLE = rdkit.Chem.rdchem.BondType.TRIPLE
+    TWOANDAHALF = rdkit.Chem.rdchem.BondType.TWOANDAHALF
+    UNSPECIFIED = rdkit.Chem.rdchem.BondType.UNSPECIFIED
+    ZERO = rdkit.Chem.rdchem.BondType.ZERO
+    """
 
     def from_config(self, section, cfgdic):
         """take atom and connectivity information from a config file"""
