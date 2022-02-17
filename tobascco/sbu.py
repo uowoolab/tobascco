@@ -90,6 +90,7 @@ class SBU(Chem.rdchem.RWMol):
         # deleted, the indices are all wrong.
         hlbonds = []
         del_atoms = []
+        connect_pt_atoms = []
         # search for coordinating functional groups.
         for group in self.functional_groups:
             if self.HasSubstructMatch(group):
@@ -105,14 +106,17 @@ class SBU(Chem.rdchem.RWMol):
                     del_atms += match
                     x,y = self.GetConformer().GetPositions()[[xi,match[0]],:]
                     vec = (y-x)/np.linalg.norm(y-x)
-
+                    connect_pt_atoms.append(gid) # !!!!! NOTE THE INDEX gid MAY CHANGE WHEN DELETING ATOMS! 
                     # create a connect point.
                     connect_point = ConnectPoint()
                     connect_point.origin[:3] = x
                     connect_point.z[:3] = vec
                     self.connect_points.append(connect_point)
+        # remove all the atoms that will not be included in the SBu
+        # (namely those that coordinate to the metal ion)
         [self.RemoveAtom(i) for i in reversed(sorted(set(del_atms)))]
-        # the init below doesn't help.
+        # RDkit has trouble with indices after deleting atoms so I am trying to
+        # reinitialize the SBU with fewer atoms to see if it would work. The init below doesn't help.
         self.__init__(self.GetMol())
 
         # append atoms (probably should rework other routines to
@@ -130,9 +134,12 @@ class SBU(Chem.rdchem.RWMol):
         # append bonds
         for bond in self.GetBonds():
             a,b = (bond.GetBeginAtomIdx(), bond.GetEndAtomIdx())
-            if a in []:
+            if a in connect_pt_atoms:
+                # is this an atom that connects to another SBU?
+                self.atoms[a].sbu_bridge.append(connect_pt_atoms.index(a)) 
 
-            if b in []:
+            if b in connect_pt_atoms:
+                self.atoms[b].sbu_bridge.append(connect_pt_atoms.index(b)) 
 
             self.bonds
             b = tuple(sorted((a,b)))

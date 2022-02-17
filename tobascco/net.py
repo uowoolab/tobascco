@@ -618,13 +618,157 @@ class Net(object):
         cocycle_rep = np.reshape(cocycle, (cocycle_size, ndim))
         return mt, cocycle_rep
 
+
     def nlopt_net_embedding(self):
         '''Using the python api provided by the developers of nlopt, instead of my own c interface.
 
-        '''
+        nlopt.{G,L}{N,D}_xxxx
+        G,L - global or local optimization
+        N,D - gradient-free or gradient-based algorithm
 
+        algorithms can be:
+        nlopt.GN_ORIG_DIRECT_L
+        nlopt.GN_ORIG_DIRECT
+        nlopt.GN_CRS2_LM
+        nlopt.G_MLSL_LDS (use a local optimizer as well via opt.set_local_optimizer())
+        nlopt.G_MLSL
+        nlopt.GD_STOGO
+        nlopt.GD_STOGO_RAND
+        nlopt.GN_AGS
+        nlopt.GN_ISRES
+        nlopt.GN_ESCH
+        nlopt.LN_COBYLA
+        nlopt.LN_BOBYQA
+        nlopt.LN_NEWUOA
+        nlopt.LN_NEWUOA_BOUND
+        nlopt.LN_PRAXIS
+        nlopt.LN_NELDERMEAD
+        nlopt.LN_SBPLX
+        nlopt.LD_MMA    |____ both have additional internal parameters (nlopt.set_param)
+        nlopt.LD_CCSAQ  |
+        nlopt.LD_SLSQP
+        nlopt.LD_LBFGS
+        nlopt.LD_TNEWTON_PRECOND_RESTART
+        nlopt.LD_TNEWTON_PRECOND
+        nlopt.LD_TNEWTON_RESTART
+        nlopt.LD_TNEWTON
+        nlopt.LD_VAR2
+        nlopt.LD_VAR1
+        nlopt.AUGLAG
+
+        '''
+        def objective_f(x, grad):
+            if grad.size > 0:
+                grad[:] = 0 # must overwrite the contents instead of reassigning the variable 'grad'. Probably has something to do with memory management in the underlying C program.
+        return x
         # TODO(pboyd): define the objective function, which is currently written in c, and the 
         #              gradient function.
+        f = math.factorial
+        mtsize = self.ndim + f(self.ndim) / f(2) / f(self.ndim - 2)
+        size = int(mtsize + self.cocycle_rep.shape[0] * self.ndim)
+        x = np.empty(size)
+        ub = np.empty(size)
+        lb = np.empty(size)
+        max_cell = (
+            self.metric_tensor[np.diag_indices_from(self.metric_tensor)].max() * 1.1
+        )
+        # max_cell = np.inf
+        min_cell = min(
+            self.metric_tensor[np.diag_indices_from(self.metric_tensor)].min(),
+            0.1 * max_cell,
+        )
+        # min_cell = 0.01
+        xinc = 0
+        for i in self.metric_tensor[np.diag_indices_from(self.metric_tensor)]:
+            # x[xinc] = np.sqrt(i)
+            x[xinc] = i
+            ub[xinc] = i  # max_cell
+            lb[xinc] = i * 0.1  # min_cell
+            # ub[xinc] = max_cell
+            # lb[xinc] = min_cell
+            xinc += 1
+
+        # g = [i[::-1] for i in np.triu_indices(self.ndim, 1)]
+        g = np.triu_indices(self.ndim, 1)
+        for (i, j) in zip(*g):
+            x[xinc] = (
+                self.metric_tensor[i, j]
+                / np.sqrt(self.metric_tensor[i, i])
+                / np.sqrt(self.metric_tensor[j, j])
+            )
+            # set max and min angles to 120, 60 respectively.
+            ub[xinc] = 0.99
+            lb[xinc] = -0.99
+            xinc += 1
+
+        # init the cocycle representation to zeros
+        # x[xinc:] = 0.
+        x[xinc:] = self.cocycle_rep.flatten()
+        ub[xinc:] = 0.4
+        lb[xinc:] = -0.4
+        scale_ind = int(self.scale[0][0][0])
+        debug("Using nlopt v.{0:d}.{1:d}.{2:d}".format(nl.version_major(),
+                                                       nl.version_minor(),
+                                                       nl.version_bugfix()))
+        opt = nl.opt(nl.LN_COBYLA, size)
+        opt.set_maxtime(0) # seconds.
+        opt.set_xtol_abs()
+        opt.set_xtol_rel()
+        opt.set_ftol_abs()
+        opt.set_ftol_rel()
+        opt.set_stopval()
+        opt.set_upper_bounds(ub)
+        opt.set_lower_bounds(lb)
+        opt.set_min_objective(f)
+
+        if self.options.global_optimiser:
+            debug(
+                "Preparing a global optimisation with %s, followed by a %s"
+                % (self.options.global_optimiser, self.options.local_optimiser)
+            )
+        else:
+            debug(
+                "Preparing local optimisation using %s" % (self.options.local_optimiser)
+            )
+
+        globalo = self.options.global_optimiser
+        localo = self.options.local_optimiser
+        x = nl.nloptimize(
+            self.ndim,
+            scale_ind,
+            lb,
+            ub,
+            x,
+            self.cycle_rep,
+            self.cycle_cocycle_I,
+            # self.sbu_tensor_matrix, # these are absolute tensor matrix values, to obtain normalized values and angles.. use below
+            self.colattice_dotmatrix,
+            np.array(self.colattice_inds[0]),
+            np.array(self.colattice_inds[1]),
+            self.options.opt_parameter_tol,
+            self.options.opt_function_tol,
+            globalo,
+            localo,
+        )
+        if x is None:
+            return False
+        angle_inds = int(f(self.ndim) / f(2) / f(self.ndim - 2))
+        self.metric_tensor, self.cocycle_rep = self.convert_params(
+            x, self.ndim, angle_inds, int(self.order - 1)
+        )
+        self.periodic_rep = np.concatenate((self.cycle_rep, self.cocycle_rep))
+        inner_p = np.dot(
+            np.dot(self.lattice_arcs, self.metric_tensor), self.lattice_arcs.T
+        )
+        scind = self.scale[0]
+        sclen = self.scale[1]
+        self.scale_factor = sclen / inner_p[scind]
+        # self.scale_factor = 1.
+        self.metric_tensor *= self.scale_factor
+
+        self.report_errors_nlopt()
+        return True
+         
 
     def net_embedding(self):
         ''' DEPRECATED!!
