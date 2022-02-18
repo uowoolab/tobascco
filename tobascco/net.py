@@ -710,51 +710,35 @@ class Net(object):
         debug("Using nlopt v.{0:d}.{1:d}.{2:d}".format(nl.version_major(),
                                                        nl.version_minor(),
                                                        nl.version_bugfix()))
+        # TODO(pboyd): change the optimization algorithm to a user-defined one.
         opt = nl.opt(nl.LN_COBYLA, size)
         opt.set_maxtime(0) # seconds.
-        opt.set_xtol_abs()
-        opt.set_xtol_rel()
-        opt.set_ftol_abs()
-        opt.set_ftol_rel()
-        opt.set_stopval()
+        opt.set_xtol_abs(self.options.opt_parameter_tol)
+        opt.set_ftol_abs(self.options.opt_function_tol)
         opt.set_upper_bounds(ub)
         opt.set_lower_bounds(lb)
-        opt.set_min_objective(f)
+        opt.set_min_objective(objective_f)
 
-        if self.options.global_optimiser:
-            debug(
-                "Preparing a global optimisation with %s, followed by a %s"
-                % (self.options.global_optimiser, self.options.local_optimiser)
-            )
-        else:
-            debug(
-                "Preparing local optimisation using %s" % (self.options.local_optimiser)
-            )
+        #if self.options.global_optimiser:
+        #    debug(
+        #        "Preparing a global optimisation with %s, followed by a %s"
+        #        % (self.options.global_optimiser, self.options.local_optimiser)
+        #    )
+        #else:
+        #    debug(
+        #        "Preparing local optimisation using %s" % (self.options.local_optimiser)
+        #    )
 
-        globalo = self.options.global_optimiser
-        localo = self.options.local_optimiser
-        x = nl.nloptimize(
-            self.ndim,
-            scale_ind,
-            lb,
-            ub,
-            x,
-            self.cycle_rep,
-            self.cycle_cocycle_I,
-            # self.sbu_tensor_matrix, # these are absolute tensor matrix values, to obtain normalized values and angles.. use below
-            self.colattice_dotmatrix,
-            np.array(self.colattice_inds[0]),
-            np.array(self.colattice_inds[1]),
-            self.options.opt_parameter_tol,
-            self.options.opt_function_tol,
-            globalo,
-            localo,
-        )
-        if x is None:
+
+        #globalo = self.options.global_optimiser.encode("utf-8")
+        #localo = self.options.local_optimiser.encode("utf-8")
+
+        xopt = opt.optimize(x)
+        if xopt is None:
             return False
         angle_inds = int(f(self.ndim) / f(2) / f(self.ndim - 2))
         self.metric_tensor, self.cocycle_rep = self.convert_params(
-            x, self.ndim, angle_inds, int(self.order - 1)
+            xopt, self.ndim, angle_inds, int(self.order - 1)
         )
         self.periodic_rep = np.concatenate((self.cycle_rep, self.cocycle_rep))
         inner_p = np.dot(
@@ -766,7 +750,7 @@ class Net(object):
         # self.scale_factor = 1.
         self.metric_tensor *= self.scale_factor
 
-        self.report_errors_nlopt()
+        #self.report_errors_nlopt()
         return True
          
 
