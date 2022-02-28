@@ -7,7 +7,7 @@ from numpy.distutils.misc_util import get_numpy_include_dirs
 
 import versioneer
 
-include_dirs = [os.path.join(os.getcwd(), "tobascco", "src")]
+include_dirs = [os.path.join(os.getcwd(), "tobascco")]
 
 
 with open("requirements.txt", "r") as fh:
