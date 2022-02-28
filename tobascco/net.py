@@ -8,7 +8,7 @@ from sys import version_info
 from uuid import uuid4
 
 import nlopt as nl
-import _nloptimize as nl
+#import _nloptimize as nl
 import networkx as nx
 import numpy as np
 import sympy as sy
@@ -659,7 +659,18 @@ class Net(object):
         '''
         def objective_f(x, grad):
             if grad.size > 0:
-                grad[:] = 0 # must overwrite the contents instead of reassigning the variable 'grad'. Probably has something to do with memory management in the underlying C program.
+                # central difference grad.
+
+                grad[:] = 0 # must overwrite the contents instead of reassigning the variable 'grad'. Probably has something to do with memory management in the underlying C program
+            # create full rep from the values in 'x'
+            
+            # create the metric tensor
+
+
+            # compute the inner product (fast?)
+
+
+          
         return x
         # TODO(pboyd): define the objective function, which is currently written in c, and the 
         #              gradient function.
