@@ -663,7 +663,7 @@ class Net(object):
 
                 grad[:] = 0 # must overwrite the contents instead of reassigning the variable 'grad'. Probably has something to do with memory management in the underlying C program
             # create full rep from the values in 'x'
-            
+                 
             # create the metric tensor
 
 
