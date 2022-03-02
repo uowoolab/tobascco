@@ -3,7 +3,7 @@ import configparser
 import itertools
 from logging import debug, error
 
-import rdkit.Chem
+from rdkit import Chem
 import numpy as np
 from numpy import arccos, cos, pi, sin
 from scipy.spatial import distance

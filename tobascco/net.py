@@ -181,11 +181,6 @@ class Net(object):
         self.options = options
 
     def nodes_iter(self, data=True):
-        """Oh man, fixing to networkx 2.0
-
-        This probably breaks a lot of stuff in the code. THANKS NETWORKX!!!!!!!1
-
-        """
         for node in self._graph.nodes():
             if data:
                 d = self._graph.node[node]
@@ -579,7 +574,7 @@ class Net(object):
         self.scale = (([max_ind], [max_ind]), max_val)
         # this sbu_tensor_matrix is probably not needed...
         self.sbu_tensor_matrix = mat
-        self.colattice_inds = inds
+        self.eolattice_inds = inds
         self.colattice_dotmatrix = np.zeros((mat.shape[0], mat.shape[1]))
         # self.colattice_dotmatrix = np.array(mat)
         # return
@@ -663,7 +658,13 @@ class Net(object):
 
                 grad[:] = 0 # must overwrite the contents instead of reassigning the variable 'grad'. Probably has something to do with memory management in the underlying C program
             # create full rep from the values in 'x'
-                 
+	
+            self.cycle_rep,
+            self.cycle_cocycle_I,
+            self.colattice_dotmatrix,
+            zero_indi = np.array(self.colattice_inds[0]),
+            zero_indj = np.array(self.colattice_inds[1]),
+                     
             # create the metric tensor
 
 
@@ -1086,7 +1087,7 @@ class Net(object):
                 break
         # if not enough kernel vectors were found from the cycle basis,
         # then iterate over cycles which are linearly independent from
-        # the vectors already in the kernel. NB: this is fucking slow.
+        # the vectors already in the kernel. NB: this is slow.
         if len(kernel_vectors) != max_count:
             warning(
                 "The number of vectors in the kernel does not match the size of the graph!"

@@ -1,8 +1,6 @@
 mypy
-rdkit
 sympy
 numpy
-rdkit-pypi
 networkx
 matplotlib
 spglib
