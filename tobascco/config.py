@@ -19,7 +19,7 @@ ARC_DEFAULT = os.path.join(
 SBU_DEFAULT = os.path.join(
     os.path.dirname(os.path.realpath(__file__)),
     "data",
-    "sbu",
+    "sbu"
 )
 
 __all__ = ["Options", "ARC_DEFAULT", "SBU_DEFAULT"]
@@ -27,15 +27,22 @@ __all__ = ["Options", "ARC_DEFAULT", "SBU_DEFAULT"]
 
 class Options(object):
     def __init__(self):
+        # check if running from the command line
+        if sys.stdin and sys.stdin.isatty():
+            self._command_options()
+        else:
+            self.cmd_options = {'silent': True,
+                                'quiet': False,
+                                'verbose': False}
 
-        self._command_options()
+            self.input_file = 'default'
         self.job = configparser.SafeConfigParser()
         self.csv = None
         self._set_paths()
         self._load_defaults()
         self._load_job()
         self._set_attr()
-        self.sbu_files = [SBU_DEFAULT]
+        self.sbu_files = [os.path.join(SBU_DEFAULT, i) for i in os.listdir(SBU_DEFAULT) if os.path.isfile(os.path.join(SBU_DEFAULT,i))]
         self.topology_files = [ARC_DEFAULT]
 
     def _set_paths(self):
@@ -52,7 +59,7 @@ class Options(object):
         """Load data from the command line."""
 
         usage = "%prog [options] input_file"
-        version = "%prog " + "%f" % (__version__)
+        version = "%prog " + __version__
         parser = OptionParser(usage=usage, version=version)
         group = optparse.OptionGroup(parser, "Verbosity Options")
         group.add_option(
@@ -127,7 +134,7 @@ class Options(object):
         for key, value in self.job.items("job"):
             value = self.get_val("job", key)
             setattr(self, key, value)
-        for key, value in self.cmd_options.__dict__.items():
+        for key, value in self.cmd_options.items():
             setattr(self, key, value)
 
     def get_val(self, section, key):
