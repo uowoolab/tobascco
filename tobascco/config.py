@@ -6,7 +6,7 @@ import re
 import sys
 from ast import literal_eval
 from io import StringIO
-from logging import error
+from logging import error, info, warning
 from optparse import OptionParser
 from pathlib import Path
 

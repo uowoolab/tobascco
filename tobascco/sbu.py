@@ -3,6 +3,7 @@ import configparser
 import itertools
 from logging import debug, error
 
+from copy import deepcopy
 from rdkit import Chem
 import numpy as np
 from numpy import arccos, cos, pi, sin
@@ -547,3 +548,18 @@ class SBU(Chem.rdchem.RWMol):
             )
 
         return line
+
+    def __copy__(self):
+        cls = self.__class__
+        result = cls.__new__(cls)
+        result.__dict__.update(self.__dict__)
+        return result
+
+    def __deepcopy__(self, memo):
+        cls = self.__class__
+        result = cls.__new__(cls)
+        memo[id(self)] = result
+        for k, v in self.__dict__.items():
+            setattr(result, k, deepcopy(v, memo))
+        return result
+        

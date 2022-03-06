@@ -574,7 +574,7 @@ class Net(object):
         self.scale = (([max_ind], [max_ind]), max_val)
         # this sbu_tensor_matrix is probably not needed...
         self.sbu_tensor_matrix = mat
-        self.eolattice_inds = inds
+        self.colattice_inds = inds
         self.colattice_dotmatrix = np.zeros((mat.shape[0], mat.shape[1]))
         # self.colattice_dotmatrix = np.array(mat)
         # return
@@ -670,9 +670,7 @@ class Net(object):
 
             # compute the inner product (fast?)
 
-
-          
-        return x
+            return (x**2).sum()
         # TODO(pboyd): define the objective function, which is currently written in c, and the 
         #              gradient function.
         f = math.factorial
@@ -723,6 +721,10 @@ class Net(object):
                                                        nl.version_minor(),
                                                        nl.version_bugfix()))
         # TODO(pboyd): change the optimization algorithm to a user-defined one.
+        print(self.colattice_dotmatrix)
+        print(np.array(self.colattice_inds))
+        print(np.array(self.colattice_inds))
+
         opt = nl.opt(nl.LN_COBYLA, size)
         opt.set_maxtime(0) # seconds.
         opt.set_xtol_abs(self.options.opt_parameter_tol)
@@ -745,7 +747,8 @@ class Net(object):
         #globalo = self.options.global_optimiser.encode("utf-8")
         #localo = self.options.local_optimiser.encode("utf-8")
 
-        xopt = opt.optimize(x)
+        #xopt = opt.optimize(x)
+        xopt = None
         if xopt is None:
             return False
         angle_inds = int(f(self.ndim) / f(2) / f(self.ndim - 2))

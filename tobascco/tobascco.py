@@ -195,7 +195,6 @@ class JobHandler(object):
                     combinations = run.generate_sbu_combinations(
                         incidence=build.net_degrees()
                     )
-
                 if not list(combinations):
                     debug(
                         "Net %s does not support the same" % (top)

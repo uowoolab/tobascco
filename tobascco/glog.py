@@ -95,14 +95,3 @@ class ColouredConsoleHandler(logging.StreamHandler):
         )
         logging.StreamHandler.emit(self, myrecord)
 
-
-def main():
-    options = config.Options()
-    log = Log(options)
-    info("this is a logging test")
-    error("this is a logging test")
-    warning("this is a logging test")
-
-
-if __name__ == "__main__":
-    main()
