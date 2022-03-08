@@ -666,10 +666,18 @@ class Net(object):
             zero_indj = np.array(self.colattice_inds[1]),
                      
             # create the metric tensor
-
-
+            # currently only assuming ndim = 3
+            Z = np.empty(6)
+            Z[:3] = x[:3]
+            Z[3] = x[3]*np.sqrt(x[0])*np.sqrt(x[1])
+            Z[4] = x[4]*np.sqrt(x[0])*np.sqrt(x[2])
+            Z[5] = x[5]*np.sqrt(x[1])*np.sqrt(x[2])
+            cocycle_rep = np.reshape(x[6:], (int(x[6:].shape[0]/self.ndim), self.ndim))
             # compute the inner product (fast?)
-
+            rep = np.append(self.cycle_rep, cocycle_rep, axis=0)
+            f = np.matmul(self.cycle_cocycle_I, rep)
+            # compute inner product matrix, take sum square diff.
+            
             return (x**2).sum()
         # TODO(pboyd): define the objective function, which is currently written in c, and the 
         #              gradient function.
@@ -721,9 +729,6 @@ class Net(object):
                                                        nl.version_minor(),
                                                        nl.version_bugfix()))
         # TODO(pboyd): change the optimization algorithm to a user-defined one.
-        print(self.colattice_dotmatrix)
-        print(np.array(self.colattice_inds))
-        print(np.array(self.colattice_inds))
 
         opt = nl.opt(nl.LN_COBYLA, size)
         opt.set_maxtime(0) # seconds.
@@ -747,8 +752,8 @@ class Net(object):
         #globalo = self.options.global_optimiser.encode("utf-8")
         #localo = self.options.local_optimiser.encode("utf-8")
 
-        #xopt = opt.optimize(x)
-        xopt = None
+        xopt = opt.optimize(x)
+        #xopt = None
         if xopt is None:
             return False
         angle_inds = int(f(self.ndim) / f(2) / f(self.ndim - 2))
