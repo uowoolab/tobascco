@@ -662,23 +662,31 @@ class Net(object):
             self.cycle_rep,
             self.cycle_cocycle_I,
             self.colattice_dotmatrix,
-            zero_indi = np.array(self.colattice_inds[0]),
-            zero_indj = np.array(self.colattice_inds[1]),
+            zero_indi = self.colattice_inds[0]
+            zero_indj = self.colattice_inds[1]
                      
             # create the metric tensor
             # currently only assuming ndim = 3
-            Z = np.empty(6)
-            Z[:3] = x[:3]
-            Z[3] = x[3]*np.sqrt(x[0])*np.sqrt(x[1])
-            Z[4] = x[4]*np.sqrt(x[0])*np.sqrt(x[2])
-            Z[5] = x[5]*np.sqrt(x[1])*np.sqrt(x[2])
+            Z = np.empty((3,3))
+            np.fill_diagonal(Z, x[:3])
+           
+            arr = np.array([x[3]*np.sqrt(x[0])*np.sqrt(x[1]),
+                            x[4]*np.sqrt(x[0])*np.sqrt(x[2]),
+                            x[5]*np.sqrt(x[1])*np.sqrt(x[2])])
+            
+            Z[np.triu_indices(self.ndim, k=1)] = \
+            Z[np.tril_indices(self.ndim, k=-1)] = arr
+
             cocycle_rep = np.reshape(x[6:], (int(x[6:].shape[0]/self.ndim), self.ndim))
             # compute the inner product (fast?)
             rep = np.append(self.cycle_rep, cocycle_rep, axis=0)
             f = np.matmul(self.cycle_cocycle_I, rep)
             # compute inner product matrix, take sum square diff.
-            
-            return (x**2).sum()
+            # TODO(pboyd): scale offdiagonals by the length?
+            inner_p = np.dot(np.dot(f,Z),f.T)
+            a = (inner_p[zero_indi, zero_indj] - 
+                self.colattice_dotmatrix[zero_indi, zero_indj])**2
+            return a.sum()
         # TODO(pboyd): define the objective function, which is currently written in c, and the 
         #              gradient function.
         f = math.factorial
