@@ -684,8 +684,11 @@ class Net(object):
             # compute inner product matrix, take sum square diff.
             # TODO(pboyd): scale offdiagonals by the length?
             inner_p = np.dot(np.dot(f,Z),f.T)
+            inner_p = inner_p / (inner_p.diagonal().reshape((inner_p.shape[0],1)) / 
+                                    inner_p.diagonal())
             a = (inner_p[zero_indi, zero_indj] - 
                 self.colattice_dotmatrix[zero_indi, zero_indj])**2
+            print(a.sum())
             return a.sum()
         # TODO(pboyd): define the objective function, which is currently written in c, and the 
         #              gradient function.
@@ -738,7 +741,7 @@ class Net(object):
                                                        nl.version_bugfix()))
         # TODO(pboyd): change the optimization algorithm to a user-defined one.
 
-        opt = nl.opt(nl.LN_COBYLA, size)
+        opt = nl.opt(nl.LN_BOBYQA, size)
         opt.set_maxtime(0) # seconds.
         opt.set_xtol_abs(self.options.opt_parameter_tol)
         opt.set_ftol_abs(self.options.opt_function_tol)

@@ -124,7 +124,7 @@ class SBU(Chem.rdchem.RWMol):
         # adapt to the RDKit class, but this is easier)
         for atom in self.GetAtoms():
             x,y,z = self.GetConformer().GetPositions()[atom.GetIdx()]
-            element = ATOMIC_NUMBER[atom.GetAtomicNumber()]
+            element = ATOMIC_NUMBER[atom.GetAtomicNum()]
             newatom = Atom()
             newatom.index = idx
             newatom.sbu_index = self.identifier
@@ -209,7 +209,11 @@ class SBU(Chem.rdchem.RWMol):
             elif len(split_atom_line) == 4:
                 newatom.from_config(atom_line)
             self.atoms.append(newatom)
-
+            # rdkit add atom
+            at = Chem.Atom(newatom.element)
+            # indices should be the same.
+            assert at.GetIdx() == idx
+            self.AddAtom(at)
         # bonding table
         if cfgdic.has_option(section, "table"):
             for table_line in cfgdic.get(section, "table").strip().splitlines():
@@ -228,6 +232,17 @@ class SBU(Chem.rdchem.RWMol):
                 else:
                     b = tuple(sorted([int(bond[0]), int(bond[1])]))
                     self.bonds[b] = bond[2]
+                    # rdkit add bond for visualization
+                    bondtype = Chem.rdchem.BondType.UNSPECIFIED
+                    if bond[2] == 'A':
+                        bondtype = Chem.rdchem.BondType.AROMATIC
+                    elif bond[2] == 'S':
+                        bondtype = Chem.rdchem.BondType.SINGLE
+                    elif bond[2] == 'D'
+                        bondtype = Chem.rdchem.BondType.DOUBLE
+                    elif bond[2] == 'T'
+                        bondtype = Chem.rdchem.BondType.TRIPLE
+                    self.AddBond(bond[0], bond[1], bondtype) 
 
         if not self.bonds:
             debug(
