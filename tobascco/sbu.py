@@ -211,9 +211,9 @@ class SBU(Chem.rdchem.RWMol):
             self.atoms.append(newatom)
             # rdkit add atom
             at = Chem.Atom(newatom.element)
+            rdidx = self.AddAtom(at)
             # indices should be the same.
-            assert at.GetIdx() == idx
-            self.AddAtom(at)
+            assert rdidx == idx, "RDKit atom index {0:d} should be {1:d}".format(rdidx, idx)
         # bonding table
         if cfgdic.has_option(section, "table"):
             for table_line in cfgdic.get(section, "table").strip().splitlines():
@@ -238,11 +238,11 @@ class SBU(Chem.rdchem.RWMol):
                         bondtype = Chem.rdchem.BondType.AROMATIC
                     elif bond[2] == 'S':
                         bondtype = Chem.rdchem.BondType.SINGLE
-                    elif bond[2] == 'D'
+                    elif bond[2] == 'D':
                         bondtype = Chem.rdchem.BondType.DOUBLE
-                    elif bond[2] == 'T'
+                    elif bond[2] == 'T':
                         bondtype = Chem.rdchem.BondType.TRIPLE
-                    self.AddBond(bond[0], bond[1], bondtype) 
+                    self.AddBond(int(bond[0]), int(bond[1]), bondtype) 
 
         if not self.bonds:
             debug(
