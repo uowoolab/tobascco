@@ -7,7 +7,7 @@ from numpy.distutils.misc_util import get_numpy_include_dirs
 
 import versioneer
 
-include_dirs = [os.path.join(os.getcwd(), "tobascco")]
+include_dirs = [os.path.join(os.getcwd(), "tobascco", "src")]
 
 
 with open("requirements.txt", "r") as fh:
@@ -64,4 +64,15 @@ setup(
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
     ],
+    ext_modules=[
+        Extension(
+            "_nloptimize",
+            include_dirs=include_dirs + get_numpy_include_dirs(),
+            sources=[os.path.join(os.getcwd(), "tobascco", "src", "pyoptim.cpp")],
+            language="c++",
+            libraries=["nlopt"],
+            extra_link_args=["-O"],
+        )
+     ],
+
 )

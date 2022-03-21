@@ -246,7 +246,7 @@ class Structure(object):
             c.add_data("atoms", _atom_site_fract_z=CIF.atom_site_fract_z(fc[2]))
 
         # bond block
-        for (at1, at2), (type, dist, sym) in self.bonds.items():
+        for (at1, at2), (btype, dist, sym) in self.bonds.items():
             label1 = labels[at1]
             label2 = labels[at2]
             c.add_data(
@@ -261,12 +261,11 @@ class Structure(object):
             c.add_data(
                 "bonds", _geom_bond_site_symmetry_2=CIF.geom_bond_site_symmetry_2(sym)
             )
-            c.add_data("bonds", _ccdc_geom_bond_type=CIF.ccdc_geom_bond_type(type))
-
+            c.add_data("bonds", _ccdc_geom_bond_type=CIF.ccdc_geom_bond_type(btype))
         file = open("%s.cif" % self.name, "w")
         file.writelines(str(c))
         file.close()
-
+        return 
 
 class Cell(object):
     """contains periodic vectors for the structure."""

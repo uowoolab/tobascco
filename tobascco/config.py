@@ -36,6 +36,7 @@ class Options(object):
                                 'verbose': False}
 
             self.input_file = 'default'
+        self.version = "%prog " + __version__
         self.job = configparser.SafeConfigParser()
         self.csv = None
         self._set_paths()
@@ -59,8 +60,7 @@ class Options(object):
         """Load data from the command line."""
 
         usage = "%prog [options] input_file"
-        version = "%prog " + __version__
-        parser = OptionParser(usage=usage, version=version)
+        parser = OptionParser(usage=usage, version=self.version)
         group = optparse.OptionGroup(parser, "Verbosity Options")
         group.add_option(
             "-s",

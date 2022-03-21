@@ -432,6 +432,8 @@ class JobHandler(object):
                             self.embed_sbu_combo(top, combo, build)
                         elif not build.met_met_bonds:
                             self.embed_sbu_combo(top, combo, build)
+                        struct = build.struct
+                        print(struct.name)
 
                     else:
                         debug(
@@ -451,7 +453,7 @@ class JobHandler(object):
             f = open("nets_%s.pkl" % self.options.jobname, "wb")
             p = pickle.dump(self._stored_nets, f)
             f.close()
-        Terminate()
+        #Terminate()
 
     def _sbu_report(self):
         """Compute the surface areas and report them to a .csv file."""

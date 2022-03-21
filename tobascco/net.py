@@ -7,8 +7,8 @@ from os.path import dirname, join, realpath
 from sys import version_info
 from uuid import uuid4
 
-import nlopt as nl
-#import _nloptimize as nl
+#import nlopt as nl
+import _nloptimize as nl
 import networkx as nx
 import numpy as np
 import sympy as sy
@@ -682,13 +682,12 @@ class Net(object):
             rep = np.append(self.cycle_rep, cocycle_rep, axis=0)
             f = np.matmul(self.cycle_cocycle_I, rep)
             # compute inner product matrix, take sum square diff.
-            # TODO(pboyd): scale offdiagonals by the length?
             inner_p = np.dot(np.dot(f,Z),f.T)
             inner_p = inner_p / (inner_p.diagonal().reshape((inner_p.shape[0],1)) / 
                                     inner_p.diagonal())
             a = (inner_p[zero_indi, zero_indj] - 
                 self.colattice_dotmatrix[zero_indi, zero_indj])**2
-            print(a.sum())
+            #print(a.sum())
             return a.sum()
         # TODO(pboyd): define the objective function, which is currently written in c, and the 
         #              gradient function.
@@ -786,7 +785,7 @@ class Net(object):
          
 
     def net_embedding(self):
-        ''' DEPRECATED!!
+        ''' 
 
         '''
         f = math.factorial
