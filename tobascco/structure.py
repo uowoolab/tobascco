@@ -171,10 +171,15 @@ class Structure(object):
             shifted_coords.append(np.dot((scaled + shift), self.cell.lattice))
         return shifted_coords
 
-    def write_cif(self):
+    @property
+    def cif(self):
+        return self.__cif
+
+    @cif.setter
+    def cif(self, c):
         """Write structure information to a cif file."""
         self._compute_bond_info()
-        c = CIF(name=self.name)
+        # c = CIF(name=self.name)
         # c.insert_block_order("fragment", 4)
         labels = []
         # data block
@@ -262,11 +267,19 @@ class Structure(object):
                 "bonds", _geom_bond_site_symmetry_2=CIF.geom_bond_site_symmetry_2(sym)
             )
             c.add_data("bonds", _ccdc_geom_bond_type=CIF.ccdc_geom_bond_type(btype))
+        self.__cif = c
+    
+    def write_cif(self):
         file = open("%s.cif" % self.name, "w")
-        file.writelines(str(c))
+        file.writelines(str(self.cif))
         file.close()
-        return 
+        return
 
+    def __str__(self):
+        if hasattr(self, 'cif'):
+            return str(self.cif)
+        else:
+            return None
 class Cell(object):
     """contains periodic vectors for the structure."""
 

@@ -23,6 +23,7 @@ from .linalg import (
 from .net import Net
 from .structure import Cell, Structure
 from .visualizer import GraphPlot
+from .cifer import CIF
 
 __all__ = ["Build"]
 
@@ -620,6 +621,7 @@ class Build(object):
         if self.options.overlap_tolerance != 0.0 and struct.compute_overlap():
             warning("Overlap found in final structure, not creating MOF.")
         else:
+            struct.cif = CIF(struct.name)
             struct.write_cif()
             self.struct = struct
             self.success = True

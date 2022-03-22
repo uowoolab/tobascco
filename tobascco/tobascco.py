@@ -331,6 +331,44 @@ class JobHandler(object):
         if self.options.show_embedded_net:
             build.show()
 
+    def _build_structure(self, combo, top):
+        # combinations = run.combinations_from_options()
+        # for combo in combinations:
+        inittime = time()
+        csvinfo = CSV(name="%s_info" % (self.options.jobname))
+        csvinfo.set_headings("topology", 
+                             "sbus", 
+                             "edge_count", 
+                             "time", 
+                             "space_group", 
+                             "net_charge"
+        )
+        csvinfo.set_headings("edge_length_err", 
+                             "edge_length_std", 
+                             "edge_angle_err", 
+                             "edge_angle_std"
+        )
+        self.options.csv = csvinfo
+        if not self._topologies:
+            warning("No topologies found! Exiting.")
+            Terminate()
+        debug("Trying " + self.combo_str(combo))
+        build = Build(self.options)
+        graph = self._topologies[top]
+        build.net = (top, graph, self._topologies.voltages[top])
+        build.sbus = list(set(combo))
+        if build.check_net:
+            self.embed_sbu_combo(top, combo, build)
+            struct = build.struct
+            finaltime = time() - inittime
+            info("Topcryst completed after %f seconds" % finaltime)
+            return struct
+        else:
+            warning("Net %s does not support the same" % (top) +
+                  " connectivity offered by the SBUs"
+                  )
+            return None
+
     def _build_structures(self):
         """Pass the sbu combinations to a MOF building algorithm."""
         run = Generate(self.options, self.sbu_pool)
@@ -432,8 +470,6 @@ class JobHandler(object):
                             self.embed_sbu_combo(top, combo, build)
                         elif not build.met_met_bonds:
                             self.embed_sbu_combo(top, combo, build)
-                        struct = build.struct
-                        print(struct.name)
 
                     else:
                         debug(
