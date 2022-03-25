@@ -74,21 +74,23 @@ class SBU(Chem.rdchem.RWMol):
         self.edge_assignments = []
         self.vertex_id = None
 
-    def organic_from_file(self, filename, interactive=False):
+    def organic_from_file(self, filename):
         """Currently works with .mol files only.
         Future work to expand to other file definitions if necessary.
 
         filename - self explanatory (extension should be .mol)
-        interactive - If true, will prompt user with questions if the
-                      molecule seems strange.
 
         """
 
         initmol = Chem.RWMol(Chem.MolFromMolfile(filename))
         # how to insert this into 'self'?
         self.__init__(initmol)
+        self.interpret_rdkit_RWMOL()
         # sanitize system before copying it to 'self' once things are 
         # deleted, the indices are all wrong.
+
+    def interpret_rdkit_RWMOL(self):
+
         hlbonds = []
         del_atoms = []
         connect_pt_atoms = []
@@ -104,7 +106,7 @@ class SBU(Chem.rdchem.RWMol):
                         if (xi not in match[1:]):
                             gid = xi
                             hlbonds.append(bond.GetIdx())
-                    del_atms += match
+                    del_atoms += match
                     x,y = self.GetConformer().GetPositions()[[xi,match[0]],:]
                     vec = (y-x)/np.linalg.norm(y-x)
                     connect_pt_atoms.append(gid) # !!!!! NOTE THE INDEX gid MAY CHANGE WHEN DELETING ATOMS! 
@@ -115,14 +117,16 @@ class SBU(Chem.rdchem.RWMol):
                     self.connect_points.append(connect_point)
         # remove all the atoms that will not be included in the SBu
         # (namely those that coordinate to the metal ion)
-        [self.RemoveAtom(i) for i in reversed(sorted(set(del_atms)))]
+        [self.RemoveAtom(i) for i in reversed(sorted(set(del_atoms)))]
         # RDkit has trouble with indices after deleting atoms so I am trying to
         # reinitialize the SBU with fewer atoms to see if it would work. The init below doesn't help.
         self.__init__(self.GetMol())
 
         # append atoms (probably should rework other routines to
         # adapt to the RDKit class, but this is easier)
-        for atom in self.GetAtoms():
+        Chem.rdDepictor.Compute2DCoords(self)
+        
+        for idx, atom in enumerate(self.GetAtoms()):
             x,y,z = self.GetConformer().GetPositions()[atom.GetIdx()]
             element = ATOMIC_NUMBER[atom.GetAtomicNum()]
             newatom = Atom()
