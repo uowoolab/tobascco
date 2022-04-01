@@ -11,7 +11,7 @@ conda install -c conda-forge openbabel nlopt
 Then you can install the package
 
 ```
-pip install git+https://github.com/peteboyd/tobascco
+pip install git+https://github.com/uowoolab/tobascco
 ```
 
 This automatically installs a runscript that is appropriate for most use cases
