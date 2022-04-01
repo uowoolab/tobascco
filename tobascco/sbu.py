@@ -51,12 +51,13 @@ class SBU_list(object):
 class SBU(Chem.rdchem.RWMol):
     """Contains atom information, connectivity of a Secondary Building Unit."""
     phosphonate = Chem.MolFromSmiles('P(O)(O)=O')
-    carboxylate = Chem.MolFromSmiles('C(O)(O)')
+    carboxylate1 = Chem.MolFromSmiles('C(=O)[O-]')
+    carboxylate2 = Chem.MolFromSmiles('C(O)(O)')
     functional_groups = [phosphonate,
-                         carboxylate
+                         carboxylate1,
+                         carboxylate2
                          ]
     # how to deal with nitrogens in heterocycles?
-
     def __init__(self, *args, **kwargs):
         Chem.rdchem.RWMol.__init__(self, *args, **kwargs)
         self.name = kwargs.get('name', None) 
@@ -74,81 +75,138 @@ class SBU(Chem.rdchem.RWMol):
         self.edge_assignments = []
         self.vertex_id = None
 
-    def organic_from_file(self, filename):
+    def organic_from_file(self, filename, old_format=False):
         """Currently works with .mol files only.
         Future work to expand to other file definitions if necessary.
 
         filename - self explanatory (extension should be .mol)
 
         """
-
-        initmol = Chem.RWMol(Chem.MolFromMolfile(filename))
-        # how to insert this into 'self'?
+        mol = Chem.MolFromMolFile(filename)
+        initmol = Chem.RWMol(mol)
         self.__init__(initmol)
-        self.interpret_rdkit_RWMOL()
+        self.interpret_rdkit_RWMOL(old_format=old_format)
         # sanitize system before copying it to 'self' once things are 
         # deleted, the indices are all wrong.
 
-    def interpret_rdkit_RWMOL(self):
+    def metal_from_file(self, filename, old_format=False):
+        initmol = Chem.RWMol(Chem.MolFromMolFile(filename))
+        self.is_metal = True
+        self.__init__(initmol)
+        self.interpret_rdkit_RWMOL(is_metal=True, old_format=old_format)
+
+    def interpret_rdkit_RWMOL(self, is_metal=False, old_format=False):
 
         hlbonds = []
         del_atoms = []
         connect_pt_atoms = []
-        # search for coordinating functional groups.
-        for group in self.functional_groups:
-            if self.HasSubstructMatch(group):
-                matches = self.GetSubstructMatches(group)
-                # atom that connects to the SBU? always the first one?
-                for match in matches:
-                    iat = self.GetAtomWithIdx(match[0])
-                    for bond in iat.GetBonds():
-                        xi = bond.GetEndAtomIdx()
-                        if (xi not in match[1:]):
-                            gid = xi
-                            hlbonds.append(bond.GetIdx())
-                    del_atoms += match
-                    x,y = self.GetConformer().GetPositions()[[xi,match[0]],:]
-                    vec = (y-x)/np.linalg.norm(y-x)
-                    connect_pt_atoms.append(gid) # !!!!! NOTE THE INDEX gid MAY CHANGE WHEN DELETING ATOMS! 
-                    # create a connect point.
+        # append atoms (probably should rework other routines to
+        # adapt to the RDKit class, but this is easier)
+        Chem.rdDepictor.Compute2DCoords(self)
+      
+        if (is_metal==False) and (old_format==False):
+            # search for coordinating functional groups.
+            for group in self.functional_groups:
+                if self.HasSubstructMatch(group):
+                    matches = self.GetSubstructMatches(group)
+                    # atom that connects to the SBU? always the first one?
+                    for match in matches:
+                        iat = self.GetAtomWithIdx(match[0])
+                        for bond in iat.GetBonds():
+                            ji = bond.GetBeginAtomIdx()
+                            xi = bond.GetEndAtomIdx()
+                            if (xi not in match):
+                                gid = xi
+                                gat = bond.GetEndAtom()
+                                gat.SetFormalCharge(-9)
+                                gat.SetIsotope(len(self.connect_points)+1)
+                                hlbonds.append(bond.GetIdx())
+                            elif(ji not in match):
+                                gid = ji
+                                gat = bond.GetBeginAtom()
+                                gat.SetFormalCharge(-9)
+                                gat.SetIsotope(len(self.connect_points)+1)
+                                hlbonds.append(bond.GetIdx())
+
+                        del_atoms += match
+                        x,y = self.GetConformer().GetPositions()[[gid,match[0]],:]
+                        vec = (y-x)/np.linalg.norm(y-x)
+                        connect_pt_atoms.append(gid) # !!!!! NOTE THE INDEX gid MAY CHANGE WHEN DELETING ATOMS! 
+                        # create a connect point.
+                        connect_point = ConnectPoint()
+                        connect_point.identifier = len(self.connect_points)+1
+                        connect_point.origin[:3] = x
+                        connect_point.z[:3] = vec
+                        self.connect_points.append(connect_point)
+        elif (old_format == True):
+            # get the old-school stuff if it's there. R - Xe -> Rn
+            #                                             |
+            #                                             Y
+            for idx, atom in enumerate(self.GetAtoms()):
+                x,y,z = self.GetConformer().GetPositions()[atom.GetIdx()]
+                N = atom.GetAtomicNum()
+                if N==54:
+                    atbnd = None
+                    for bond in atom.GetBonds():
+                        batm = bond.GetEndAtom()
+                        bx,by,bz = self.GetConformer().GetPositions[batm.GetIdx()]
+                        # Yttrium is from an old version, which is no longer used.
+                        # left as a place-holder in case it would be needed.
+                        if batm.GetAtomicNum() == 39:
+                            del_atoms.append(batm.GetIdx())
+                        # Rn is the atom pointing in the direction of SBU bonding.
+                        if batm.GetAtomicNum() == 86:
+                            vec = np.array([bx - x, by - y, bz - z])
+                            del_atoms.append(batm.GetIdx()) 
+                        # This will indicate the 'real' atom that is bonded to this connect point
+                        else:
+                            batm.SetFormalCharge(-9)
+                            batm.SetIsotope(len(self.connect_points)+1)
+                            atbnd = batm.GetIdx()
+                            connect_pt_atoms.append(atbnd)
+                    
                     connect_point = ConnectPoint()
-                    connect_point.origin[:3] = x
-                    connect_point.z[:3] = vec
+                    connect_point.identifier = len(self.connect_points)+1
+                    connect_point.origin[:3] = np.array([x, y, z])
+                    connect_point.z[:3] = vec / np.linalg.norm(vec)
                     self.connect_points.append(connect_point)
+        
+        elif (is_metal==True) and (old_format==False):
+            error("Can't interpret metal SBUs from native .mol files yet! "
+            +"The Xe-Rn atoms need to be placed in the .mol file to indicate connection points "
+            +"and old_format set to 'True'")
+
         # remove all the atoms that will not be included in the SBu
         # (namely those that coordinate to the metal ion)
         [self.RemoveAtom(i) for i in reversed(sorted(set(del_atoms)))]
         # RDkit has trouble with indices after deleting atoms so I am trying to
         # reinitialize the SBU with fewer atoms to see if it would work. The init below doesn't help.
-        self.__init__(self.GetMol())
+        #self.__init__(self.GetMol())
 
-        # append atoms (probably should rework other routines to
-        # adapt to the RDKit class, but this is easier)
-        Chem.rdDepictor.Compute2DCoords(self)
-        
         for idx, atom in enumerate(self.GetAtoms()):
             x,y,z = self.GetConformer().GetPositions()[atom.GetIdx()]
-            element = ATOMIC_NUMBER[atom.GetAtomicNum()]
             newatom = Atom()
+            newatom.element = ATOMIC_NUMBER[atom.GetAtomicNum()]
             newatom.index = idx
             newatom.sbu_index = self.identifier
             newatom.sbu_metal = self.is_metal
             newatom.coordinates = np.array([x,y,z])
             self.atoms.append(newatom)
-
         # append bonds
         for bond in self.GetBonds():
             a,b = (bond.GetBeginAtomIdx(), bond.GetEndAtomIdx())
-            if a in connect_pt_atoms:
+            aat, bat = (bond.GetBeginAtom(), bond.GetEndAtom())
+            if aat.GetFormalCharge() == -9: 
                 # is this an atom that connects to another SBU?
-                self.atoms[a].sbu_bridge.append(connect_pt_atoms.index(a)) 
+                if(aat.GetIsotope() not in self.atoms[a].sbu_bridge):
+                    self.atoms[a].sbu_bridge.append(aat.GetIsotope())
 
-            if b in connect_pt_atoms:
-                self.atoms[b].sbu_bridge.append(connect_pt_atoms.index(b)) 
+            if bat.GetFormalCharge() == -9: 
+                if(bat.GetIsotope() not in self.atoms[b].sbu_bridge):
+                    self.atoms[b].sbu_bridge.append(bat.GetIsotope())
 
-            self.bonds
-            b = tuple(sorted((a,b)))
-            self.bonds[b] = str(bond.GetBondType())[0]
+            bi = tuple(sorted((a,b)))
+            self.bonds[bi] = str(bond.GetBondType())[0]
     
     """
     Well THAT's confusing...
