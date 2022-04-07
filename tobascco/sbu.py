@@ -82,7 +82,7 @@ class SBU(Chem.rdchem.RWMol):
         filename - self explanatory (extension should be .mol)
 
         """
-        mol = Chem.MolFromMolFile(filename)
+        mol = Chem.MolFromMolFile(filename, sanitize=False)
         initmol = Chem.RWMol(mol)
         self.__init__(initmol)
         self.interpret_rdkit_RWMOL(old_format=old_format)
@@ -90,7 +90,7 @@ class SBU(Chem.rdchem.RWMol):
         # deleted, the indices are all wrong.
 
     def metal_from_file(self, filename, old_format=False):
-        initmol = Chem.RWMol(Chem.MolFromMolFile(filename))
+        initmol = Chem.RWMol(Chem.MolFromMolFile(filename, sanitize=False))
         self.is_metal = True
         self.__init__(initmol)
         self.interpret_rdkit_RWMOL(is_metal=True, old_format=old_format)
