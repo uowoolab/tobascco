@@ -149,7 +149,7 @@ class SBU(Chem.rdchem.RWMol):
                     atbnd = None
                     for bond in atom.GetBonds():
                         batm = bond.GetEndAtom()
-                        bx,by,bz = self.GetConformer().GetPositions[batm.GetIdx()]
+                        bx,by,bz = self.GetConformer().GetPositions()[batm.GetIdx()]
                         # Yttrium is from an old version, which is no longer used.
                         # left as a place-holder in case it would be needed.
                         if batm.GetAtomicNum() == 39:
