@@ -622,7 +622,9 @@ class Build(object):
             warning("Overlap found in final structure, not creating MOF.")
         else:
             struct.cif = CIF(struct.name)
-            struct.write_cif()
+            # removing write_cif as an automatic call if the build is a success.
+            # let this be user-defined.
+            # struct.write_cif()
             self.struct = struct
             self.success = True
             if self.options.store_net:

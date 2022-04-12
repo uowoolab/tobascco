@@ -1150,6 +1150,15 @@ class Net(object):
         # return self._graph.vertices()  # SAGE compliant
         return list(self._graph.nodes())  # networkx compliant
 
+    def unique_cn(self):
+        return np.sort(np.fromiter({j:i for (i,j) in self.original_graph.degree()}.keys(), dtype=int))
+    
+    def n_nodes(self):
+        return self.original_graph.number_of_nodes()
+
+    def n_edges(self):
+        return self.original_graph.number_of_edges()
+
     def out_edges(self, vertex):
         # out =  self.graph.outgoing_edges(vertex) # SAGE compliant
         out = [

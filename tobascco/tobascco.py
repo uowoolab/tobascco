@@ -362,7 +362,7 @@ class JobHandler(object):
             struct = build.struct
             finaltime = time() - inittime
             info("Topcryst completed after %f seconds" % finaltime)
-            return struct
+            return (struct, build.net)
         else:
             warning("Net %s does not support the same" % (top) +
                   " connectivity offered by the SBUs"
