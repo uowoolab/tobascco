@@ -148,7 +148,9 @@ class SBU(Chem.rdchem.RWMol):
                 if N==54:
                     atbnd = None
                     for bond in atom.GetBonds():
-                        batm = bond.GetEndAtom()
+                        # didn't realize the bonded neighbouring atoms could be at the beginning of the
+                        # bond instance. 
+                        batm = bond.GetEndAtom() if bond.GetEndAtom().GetAtomicNum() != N else bond.GetBeginAtom()
                         bx,by,bz = self.GetConformer().GetPositions()[batm.GetIdx()]
                         # Yttrium is from an old version, which is no longer used.
                         # left as a place-holder in case it would be needed.
@@ -164,7 +166,7 @@ class SBU(Chem.rdchem.RWMol):
                             batm.SetIsotope(len(self.connect_points)+1)
                             atbnd = batm.GetIdx()
                             connect_pt_atoms.append(atbnd)
-                    
+                    del_atoms.append(atom.GetIdx()) 
                     connect_point = ConnectPoint()
                     connect_point.identifier = len(self.connect_points)+1
                     connect_point.origin[:3] = np.array([x, y, z])
