@@ -91,8 +91,8 @@ class SBU(Chem.rdchem.RWMol):
 
     def metal_from_file(self, filename, old_format=False):
         initmol = Chem.RWMol(Chem.MolFromMolFile(filename, sanitize=False))
-        self.is_metal = True
         self.__init__(initmol)
+        self.is_metal = True
         self.interpret_rdkit_RWMOL(is_metal=True, old_format=old_format)
 
     def interpret_rdkit_RWMOL(self, is_metal=False, old_format=False):
