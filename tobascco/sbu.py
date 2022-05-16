@@ -102,7 +102,7 @@ class SBU(Chem.rdchem.RWMol):
         connect_pt_atoms = []
         # append atoms (probably should rework other routines to
         # adapt to the RDKit class, but this is easier)
-        Chem.rdDepictor.Compute2DCoords(self)
+        #Chem.rdDepictor.Compute2DCoords(self)
       
         if (is_metal==False) and (old_format==False):
             # search for coordinating functional groups.
@@ -603,6 +603,37 @@ class SBU(Chem.rdchem.RWMol):
             "%i not in the connecting points! " % (identifier)
             + ", ".join([str(i.identifier) for i in self.connect_points])
         )
+    
+    def to_ase_mol(self):
+        """Return an ASE version of the molecule. (for visualization?)
+
+        """
+        try:
+            from ase import Atoms
+        except ModuleNotFoundError:
+            error("The atomic simulation environment (ASE) module was not installed on this machine. Please install it before calling the 'to_ase_mol()' function.")
+        ase_atoms=Atoms()
+        for atom in self.atoms:
+            ase_atoms.append(atom.element)
+            ase_atoms.positions[-1]=atom.coordinates[:3]
+        return ase_atoms
+    
+    def visualize_sbu(self):
+        """For convenient visualization of an SBU. Requires ASE and NGLVIEW Modules.
+
+        """
+        arrow_color = [.3,.3,1] # blue
+        arrow_width = .3
+        try:
+            import nglview as nv
+        except ModuleNotFoundError:
+            error("The nglview module was not installed on this machine. Please install it before calling the 'visualize_sbu()' function.")
+        vmol = self.to_ase_mol()
+        view = nv.show_ase(vmol)
+        for c in self.connect_points:
+            oz = c.origin[:3]+c.z[:3]
+            view.shape.add_arrow(c.origin[:3].tolist(), oz.tolist(), arrow_color, arrow_width)
+        return view
 
     def __len__(self):
         return len(self.atoms)
