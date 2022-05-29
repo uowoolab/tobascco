@@ -39,16 +39,49 @@ class Generate(object):
     def _valid_sbu_combination(self, incidence, sbu_set):
         """Currently only checks if there is the correct number of metal
         SBUs in the combination."""
+        # check if all the special bonds can be satisfied
+        constraints = []
+        specials = []
+        none_const = {}
+        none_spec = {}
+        children = []
+        for kk in sbu_set:
+            if kk.children:
+                for j in kk.children:
+                    children.append(j)
+
+        sbu_set = tuple(list(sbu_set) + children)
+        for sbu in sbu_set:
+            for cp in sbu.connect_points:
+                if cp.special:
+                    specials.append(cp.special)
+                if cp.constraint:
+                    constraints.append(cp.constraint)
+                if cp.constraint is None:
+                    none_const[(sbu.name, sbu.is_metal)] = cp.identifier
+                if cp.special is None:
+                    none_spec[(sbu.name, sbu.is_metal)] = cp.identifier
+
+        condition1 = set(specials) == set(constraints)
+        condition2 = len([i for i in sbu_set if i.is_metal]) == \
+                self.options.metal_sbu_per_structure
+        condition3 = False
+        for sbu, met in none_spec.keys():
+            for sbu2, met2 in none_const.keys():
+                if met != met2:
+                    condition3 = True
+                    break
+
         if incidence is None:
-            return (
-                len([i for i in sbu_set if i.is_metal])
-                == self.options.metal_sbu_per_structure
-            )
+            return ( 
+                (len([i for i in sbu_set if i.is_metal]) == self.options.metal_sbu_per_structure)
+             and condition1 and condition2 and condition3
+             )
         else:
             if set(sorted([i.degree for i in sbu_set])) == set(sorted(incidence)):
                 return (
-                    len([i for i in sbu_set if i.is_metal])
-                    == self.options.metal_sbu_per_structure
+                    (len([i for i in sbu_set if i.is_metal]) == self.options.metal_sbu_per_structure)
+                    and condition1 and condition2 and condition3
                 )
             else:
                 return False
@@ -67,19 +100,6 @@ class Generate(object):
                 ret = list(combo) + [i]
                 yield tuple(ret)
 
-    @property
-    def linear_sbus_exist(self):
-        try:
-            return self._linear_exist
-        except AttributeError:
-            self._linear_exist = False
-            for i in self.sbus.list:
-                # not necessarily linear, but 2-c SBUs are OK for this function
-                if i.linear or i.two_connected:
-                    self._linear_exist = True
-                    break
-            return self._linear_exist
-
     def _valid_bond_pair(self, set):
         """Determine if the two SBUs can be bonded.  Currently set to
         flag true if the two sbus contain matching bond flags, otherwise
@@ -95,3 +115,68 @@ class Generate(object):
             return sbu1.is_metal != sbu2.is_metal
 
         return (cp1.special == cp2.constraint) and (cp2.special == cp1.constraint)
+
+    def generate_build_directives(self, sbu, sbus):
+        """Requires maximum length of sbu insertions."""
+
+        # insert metal first
+        if sbu is None:
+            # chose a metal (at random, if more than one)
+            #NB the _yield_bonding_sbus recursion takes too long for the met7 Zr SBU. This is likely
+            # due to the 12 connection sites it possesses.
+            sbu = choice([x for x in sbus if x.is_metal])
+        # expand the current SBU's bonds and establish possible SBU bondings
+        # generate exaustive list of sbu combinations.
+        for k in self._yield_bonding_sbus(sbu, set(sbus), 
+                p=[0 for i in range(self.options.structure_sbu_length)]):
+            yield [sbu] + k
+        
+    def flatten(self, s):
+        """Returns a flattened list"""
+        if s == []:
+            return s
+        if isinstance(s[0], list):
+            return self.flatten(s[0]) + self.flatten(s[1:])
+        return s[:1] + self.flatten(s[1:])
+
+    def roundrobin(self, *iterables):
+        pending = len(iterables)
+        nexts = itertools.cycle(iter(it).__next__ for it in iterables)
+        while pending:
+            try:
+                for next in nexts:
+                    yield next()
+            except StopIteration:
+                pending -= 1
+                nexts = itertools.cycle(itertools.islice(nexts, pending))
+
+    def all_bonds(self, it1, it2):
+        for i, j in itertools.izip(it1, it2):
+            yield i
+            yield j
+
+    def _gen_bonding_sbus(self, sbu, sbus, index=0):
+        """Returns an iterator which runs over tuples of bonds
+        with other sbus."""
+        # an iterator that iterates sbu's first, then sbus' connect_points
+        ncps = len(sbu.connect_points)
+        sbu_repr = list(itertools.product([sbu], sbu.connect_points))
+
+        # This becomes combinatorially intractable for met7 with 12 connection points
+        bond_iter = list(self.roundrobin(*[itertools.product([s], s.connect_points) for s in sbus ]))
+                                   # if s.name != sbu.name]))
+        # don't like how this iterates, but will do for now.
+
+    @property
+    def linear_sbus_exist(self):
+        try:
+            return self._linear_exist
+        except AttributeError:
+            self._linear_exist = False
+            for i in self.sbus.list:
+                # not necessarily linear, but 2-c SBUs are OK for this function
+                if i.linear or i.two_connected:
+                    self._linear_exist = True
+                    break
+            return self._linear_exist
+

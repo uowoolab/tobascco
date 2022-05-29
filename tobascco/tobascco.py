@@ -154,6 +154,67 @@ class JobHandler(object):
         # g.view_placement(init=(0.5, 0.5, 0.5), edge_labels=False, sbu_only=["1"]) # for bcu for paper
         # g.view_placement(init=(0.5, 0.5, 0.5), edge_labels=False) # for bcu for paper
 
+    def _build_structures_from_genstruct(self, sbu_list):
+        """Genstruct is a legacy builder for 1-D rod MOFs.
+
+        sbu_list contains a list of all metal and organic SBUs to try.
+
+
+        """
+
+        if not sbu_list:
+            info("No SBUs found!")
+            return
+        run = Generate(self.options, sbu_list)
+        # generate the combinations of SBUs to build
+        if self.options.sbu_combinations:
+            combinations = run.combinations_from_options()
+        else:
+            # remove SBUs if not listed in options.organic_sbus or options.metal_sbus
+            combinations = run.generate_sbu_combinations()
+
+        # generate the MOFs.
+        for combo in combinations:
+            gen_counter = 0
+            build = Build(self.options)
+            extra = [j for i in combo for j in i.children]
+            combo = tuple(list(combo) + extra)
+            info("Trying %s"%(', '.join([i.name for i in combo])))
+            if self.options.build_from_tree:
+                if self.options.exhaustive:
+                    directives = run.generate_build_directives(None, combo)
+                elif self.options.build_directives:
+                    directives = run.build_directives_from_options(build)
+                for iter in range(self.options.max_trials):
+                    try:
+                        d = next(directives)
+                    except StopIteration:
+                        break
+                    #print_list = []
+                    #for i in d:
+                    #    if isinstance(i, SBU):
+                    #        print_list.append(i.name)
+                    #    elif isinstance(i, tuple):
+                    #        sub_list = [i[0]]
+                    #        sub_list.append(tuple([i[1][0].name,i[1][1].identifier]))
+                    #        print_list.append(sub_list)
+                    #print(print_list)
+                    #continue
+                    # pass the directive to a MOF building algorithm
+                    gen = build.build_from_directives(d, combo)
+                    gen_counter = gen_counter + 1 if gen else gen_counter
+                    if gen_counter >= self.options.max_structures:
+                        break
+                    # random increment if many trials have passed
+
+                    if iter >= (self.options.max_trials/2):
+                        [next(directives) for i in range(randint(0,
+                                        self.options.max_trials/3))]
+            else:
+                for i in range(self.options.max_structures):
+
+
+
     def _build_structures_from_top(self):
         if not self._topologies:
             warning("No topologies found!")
