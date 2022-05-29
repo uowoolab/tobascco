@@ -2,8 +2,12 @@
 import itertools
 import math
 from copy import deepcopy
+from random import choice
+from scipy.spatial import distance
 from functools import reduce
 from logging import debug, error, info, warning
+import os
+import copy
 
 import numpy as np
 from networkx import degree_histogram
@@ -50,7 +54,7 @@ class Build(object):
 
         # original Build() class from genstruct
         self.periodic_vectors = Cell()
-        self.periodic_origins = zp.zeros((3,3))
+        self.periodic_origins = np.zeros((3,3))
         self.periodic_index = 0
         self.periodic_cps = []
 
@@ -1094,7 +1098,7 @@ class Build(object):
         if self.options.debug_writing:
             self.init_debug()
         #insert the metal SBU first
-        self._sbus = [copy.deepcopy(choice([x for x in sbu_set if x.is_metal]))]
+        self._sbus = [deepcopy(choice([x for x in sbu_set if x.is_metal]))]
         self._sbus[0].order = 0
         self.bonding_check()
         structstrings = []
@@ -1121,7 +1125,7 @@ class Build(object):
 
                 sbu1 = bond[0][0]
                 cp1 = bond[0][1]
-                sbu2 = copy.deepcopy(bond[1][0])
+                sbu2 = deepcopy(bond[1][0])
                 sbu2.order = len(self._sbus)
                 cp2 = sbu2.get_cp(bond[1][1].identifier)
                 bondstring = self.convert_to_string(sbu1, cp1, sbu2, cp2)
@@ -1167,8 +1171,8 @@ class Build(object):
                         new_structure.re_orient()
                         new_structure.build_directives = structstring
                         info("Structure Generated!")
-                        new_structure.write_cif()
-                        return True
+                        new_structure.cif = CIF(name)
+                        return new_structure
                     if total_count >= self.options.max_trials:
                         return False
 
@@ -1227,7 +1231,7 @@ class Build(object):
             if isinstance(operation, SBU):
                 # starting seed
                 index_type.append(0)
-                self._sbus.append(copy.deepcopy(operation))
+                self._sbus.append(deepcopy(operation))
                 if self.options.debug_writing:
                     self.debug_xyz(operation)
                 self.bonding_check()
@@ -1248,7 +1252,7 @@ class Build(object):
                 sbu_ind1 = index_type.index(sbu1_order)
                 sbu1 = self._sbus[sbu_ind1]
                 connect_point1 = sbu1.get_cp(sbu1_cpind)
-                sbu2 = copy.deepcopy(sbu2_type)
+                sbu2 = deepcopy(sbu2_type)
                 connect_point2 = sbu2.get_cp(sbu2_cptype.identifier)
                 debug("Trying SBU %s on (SBU %i, %s) "%(
                     sbu2.name, sbu_ind1, sbu1.name) + "using the bonds (%i, %i)"%(

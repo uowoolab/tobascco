@@ -154,7 +154,7 @@ class JobHandler(object):
         # g.view_placement(init=(0.5, 0.5, 0.5), edge_labels=False, sbu_only=["1"]) # for bcu for paper
         # g.view_placement(init=(0.5, 0.5, 0.5), edge_labels=False) # for bcu for paper
 
-    def _build_structures_from_genstruct(self, sbu_list):
+    def build_structures_from_genstruct(self, sbu_list):
         """Genstruct is a legacy builder for 1-D rod MOFs.
 
         sbu_list contains a list of all metal and organic SBUs to try.
@@ -212,8 +212,8 @@ class JobHandler(object):
                                         self.options.max_trials/3))]
             else:
                 for i in range(self.options.max_structures):
-
-
+                    structure = build.build_iteratively(combo)
+                    return (structure)
 
     def _build_structures_from_top(self):
         if not self._topologies:
@@ -428,7 +428,7 @@ class JobHandler(object):
             warning("Net %s does not support the same" % (top) +
                   " connectivity offered by the SBUs"
                   )
-            return None
+            return (None, None)
 
     def _build_structures(self):
         """Pass the sbu combinations to a MOF building algorithm."""

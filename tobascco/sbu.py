@@ -102,7 +102,12 @@ class SBU(Chem.rdchem.RWMol):
         connect_pt_atoms = []
         # append atoms (probably should rework other routines to
         # adapt to the RDKit class, but this is easier)
-        #Chem.rdDepictor.Compute2DCoords(self)
+        # if the RWMOL has no conformer, it is likely generated via smiles.
+        # Interpret 2D because rdkit has no 3D interpreter..
+        try:
+            self.GetConformer().GetPositions()
+        except ValueError: 
+            Chem.rdDepictor.Compute2DCoords(self)
 
         if (is_metal==False) and (old_format==False):
             # search for coordinating functional groups.
@@ -622,8 +627,10 @@ class SBU(Chem.rdchem.RWMol):
         """For convenient visualization of an SBU. Requires ASE and NGLVIEW Modules.
 
         """
-        arrow_color = [.3,.3,1] # blue
-        arrow_width = .3
+        color_list = [[.0, .6, 1.], [1., .2, .2], [1., .5, .5], [1., .0, .5], 
+                      [1., 1., .5], [1., .0, .6], [1., .0, .0], [.9, .5, .0],
+                      [.2, .2, .9], [.2, .0, .9], [.1, .9, .9], [1., .0, .2]]
+        arrow_width = .17
         try:
             import nglview as nv
         except ModuleNotFoundError:
@@ -631,8 +638,14 @@ class SBU(Chem.rdchem.RWMol):
         vmol = self.to_ase_mol()
         view = nv.show_ase(vmol)
         for c in self.connect_points:
+            ind = c.special if c.special is not None else 0
+            arrow_color = color_list[ind % len(color_list)] 
+            # color special connection points differently
             oz = c.origin[:3]+c.z[:3]
             view.shape.add_arrow(c.origin[:3].tolist(), oz.tolist(), arrow_color, arrow_width)
+            if c.genstruct_cp:
+                oy = c.origin[:3]+c.y[:3]
+                view.shape.add_arrow(c.origin[:3].tolist(), oy.tolist(), arrow_color, arrow_width)
         return view
 
     def __len__(self):

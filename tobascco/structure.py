@@ -179,8 +179,8 @@ class Structure(object):
     def cif(self, c):
         """Write structure information to a cif file."""
         self._compute_bond_info()
-        # c = CIF(name=self.name)
-        # c.insert_block_order("fragment", 4)
+        #c = CIF(name=self.name)
+        #c.insert_block_order("fragment", 4)
         labels = []
         # data block
         c.add_data("data", data_=self.name)
@@ -211,9 +211,9 @@ class Structure(object):
         c.add_data("cell", _cell_angle_beta=CIF.cell_angle_beta(self.cell.beta))
         c.add_data("cell", _cell_angle_gamma=CIF.cell_angle_gamma(self.cell.gamma))
 
-        # for name, order in self.fragments:
-        #    c.add_data("fragment", _chemical_identifier=CIF.label(order),
-        #                           _chemical_name=CIF.label(name))
+        #for name, order in self.fragments:
+        #   c.add_data("fragment", _chemical_identifier=CIF.label(order),
+        #                          _chemical_name=CIF.label(name))
         # atom block
         element_counter = {}
         if self.options.find_symmetric_h:
@@ -268,18 +268,29 @@ class Structure(object):
             )
             c.add_data("bonds", _ccdc_geom_bond_type=CIF.ccdc_geom_bond_type(btype))
         self.__cif = c
-    
+   
     def write_cif(self):
         file = open("%s.cif" % self.name, "w")
         file.writelines(str(self.cif))
         file.close()
         return
+    
+    def re_orient(self):
+        """Adjusts cell vectors to lie in the standard directions."""
+        frac_coords = [i.in_cell_scaled(self.cell.inverse) 
+                        for i in self.atoms]
+        self.cell.reorient_lattice()
+        for id, atom in enumerate(self.atoms):
+            atom.coordinates[:3] = np.dot(frac_coords[id],
+                                          self.cell.lattice)
 
     def __str__(self):
         if hasattr(self, 'cif'):
             return str(self.cif)
         else:
             return None
+
+
 class Cell(object):
     """contains periodic vectors for the structure."""
 
@@ -332,6 +343,22 @@ class Cell(object):
         c_y = c_mag * (np.cos(alpha) - np.cos(gamma) * np.cos(beta)) / np.sin(gamma)
         c_vec = np.array([c_x, c_y, (c_mag ** 2 - c_x ** 2 - c_y ** 2) ** 0.5])
         self.lattice = np.array([a_vec, b_vec, c_vec])
+
+    def reorient_lattice(self):
+        self.__mkparam()
+        a, b, c = self._params[:3]
+        al, be, ga = self._params[3:]
+        cos_be = np.cos(be)
+        cos_ga = np.cos(ga)
+        sin_ga = np.sin(ga)
+        cos_al = np.cos(al)
+        c_x = c*cos_be
+        c_y = c*(cos_al - cos_ga*cos_be)/sin_ga
+        c_z = np.sqrt(c**2 - c_x**2 - c_y**2)
+        self.lattice = np.array([[a, 0., 0.],
+                                [b*cos_ga, b*sin_ga, 0.],
+                                [c_x, c_y, c_z]])
+        del self._ilattice # re-compute the inverse
 
     @property
     def a(self):

@@ -155,6 +155,9 @@ class Options(object):
             "use_builds",
             "save_builds",
             "count_edges_along_lattice_dirs",
+            "build_from_tree",
+            "exhaustive",
+            "relaxed_topology",
         ]
         floats = [
             "overlap_tolerance",
@@ -164,6 +167,9 @@ class Options(object):
             "opt_parameter_tol",
             "opt_function_tol",
             "third_dimension",
+            "bond_angle_tolerance",
+            "cell_angle_cutoff",
+            "distance_tolerance",
         ]
         integers = [
             "organic_sbu_per_structure",
@@ -171,6 +177,8 @@ class Options(object):
             "max_structures",
             "max_edge_count",
             "min_edge_count",
+            "max_trials",
+            "structure_sbu_length",
         ]
         lists = [
             "topologies",
