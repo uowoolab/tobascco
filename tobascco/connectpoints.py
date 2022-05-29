@@ -26,6 +26,10 @@ class ConnectPoint(object):
         self.special = None
         self.symmetry = 1
         self.vertex_assign = None
+        self.sbu_bond = None
+        self.periodic = False
+
+        self.genstruct_cp = False
 
     def set_sbu_vertex(self, val):
         assert self.sbu_vertex is None
@@ -47,6 +51,8 @@ class ConnectPoint(object):
             )
         try:
             self.y[:3] = np.array([float(x) for x in line[7:10]])
+            self.genstruct_cp = True
+
         except ValueError:
             # Y not needed at the moment.
             pass
@@ -77,3 +83,16 @@ class ConnectPoint(object):
     def __mul__(self, val):
         self.origin[:3] *= val
         self.z[:3] *= val
+
+    def __neg__(self):
+        self.z[:3] = -self.z[:3]
+        return self
+
+    @property
+    def normal(self):
+        try:
+            return self._normal
+        except AttributeError:
+            normal = np.cross(self.y[:3], self.z[:3])
+            self._normal = normal / np.linalg.norm(normal)
+            return self._normal

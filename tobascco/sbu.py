@@ -60,10 +60,10 @@ class SBU(Chem.rdchem.RWMol):
     # how to deal with nitrogens in heterocycles?
     def __init__(self, *args, **kwargs):
         Chem.rdchem.RWMol.__init__(self, *args, **kwargs)
-        self.name = kwargs.get('name', None) 
+        self.name = kwargs.get('name', None)
         self.identifier = kwargs.get('identifier', 0)
         self.index = kwargs.get('index', 0)
-        self.topology = kwargs.get('topology', None) 
+        self.topology = kwargs.get('topology', 'unk')
         self.charge = kwargs.get('charge', 0)
         self.parent = kwargs.get('parent', None)
         self.is_metal = kwargs.get('is_metal', False)
@@ -86,7 +86,7 @@ class SBU(Chem.rdchem.RWMol):
         initmol = Chem.RWMol(mol)
         self.__init__(initmol)
         self.interpret_rdkit_RWMOL(old_format=old_format)
-        # sanitize system before copying it to 'self' once things are 
+        # sanitize system before copying it to 'self' once things are
         # deleted, the indices are all wrong.
 
     def metal_from_file(self, filename, old_format=False):
@@ -103,7 +103,7 @@ class SBU(Chem.rdchem.RWMol):
         # append atoms (probably should rework other routines to
         # adapt to the RDKit class, but this is easier)
         #Chem.rdDepictor.Compute2DCoords(self)
-      
+
         if (is_metal==False) and (old_format==False):
             # search for coordinating functional groups.
             for group in self.functional_groups:
@@ -131,7 +131,7 @@ class SBU(Chem.rdchem.RWMol):
                         del_atoms += match
                         x,y = self.GetConformer().GetPositions()[[gid,match[0]],:]
                         vec = (y-x)/np.linalg.norm(y-x)
-                        connect_pt_atoms.append(gid) # !!!!! NOTE THE INDEX gid MAY CHANGE WHEN DELETING ATOMS! 
+                        connect_pt_atoms.append(gid) # !!!!! NOTE THE INDEX gid MAY CHANGE WHEN DELETING ATOMS!
                         # create a connect point.
                         connect_point = ConnectPoint()
                         connect_point.identifier = len(self.connect_points)+1
@@ -149,7 +149,7 @@ class SBU(Chem.rdchem.RWMol):
                     atbnd = None
                     for bond in atom.GetBonds():
                         # didn't realize the bonded neighbouring atoms could be at the beginning of the
-                        # bond instance. 
+                        # bond instance.
                         batm = bond.GetEndAtom() if bond.GetEndAtom().GetAtomicNum() != N else bond.GetBeginAtom()
                         bx,by,bz = self.GetConformer().GetPositions()[batm.GetIdx()]
                         # Yttrium is from an old version, which is no longer used.
@@ -159,20 +159,20 @@ class SBU(Chem.rdchem.RWMol):
                         # Rn is the atom pointing in the direction of SBU bonding.
                         if batm.GetAtomicNum() == 86:
                             vec = np.array([bx - x, by - y, bz - z])
-                            del_atoms.append(batm.GetIdx()) 
+                            del_atoms.append(batm.GetIdx())
                         # This will indicate the 'real' atom that is bonded to this connect point
                         else:
                             batm.SetFormalCharge(-9)
                             batm.SetIsotope(len(self.connect_points)+1)
                             atbnd = batm.GetIdx()
                             connect_pt_atoms.append(atbnd)
-                    del_atoms.append(atom.GetIdx()) 
+                    del_atoms.append(atom.GetIdx())
                     connect_point = ConnectPoint()
                     connect_point.identifier = len(self.connect_points)+1
                     connect_point.origin[:3] = np.array([x, y, z])
                     connect_point.z[:3] = vec / np.linalg.norm(vec)
                     self.connect_points.append(connect_point)
-        
+
         elif (is_metal==True) and (old_format==False):
             error("Can't interpret metal SBUs from native .mol files yet! "
             +"The Xe-Rn atoms need to be placed in the .mol file to indicate connection points "
@@ -198,18 +198,18 @@ class SBU(Chem.rdchem.RWMol):
         for bond in self.GetBonds():
             a,b = (bond.GetBeginAtomIdx(), bond.GetEndAtomIdx())
             aat, bat = (bond.GetBeginAtom(), bond.GetEndAtom())
-            if aat.GetFormalCharge() == -9: 
+            if aat.GetFormalCharge() == -9:
                 # is this an atom that connects to another SBU?
                 if(aat.GetIsotope() not in self.atoms[a].sbu_bridge):
                     self.atoms[a].sbu_bridge.append(aat.GetIsotope())
 
-            if bat.GetFormalCharge() == -9: 
+            if bat.GetFormalCharge() == -9:
                 if(bat.GetIsotope() not in self.atoms[b].sbu_bridge):
                     self.atoms[b].sbu_bridge.append(bat.GetIsotope())
 
             bi = tuple(sorted((a,b)))
             self.bonds[bi] = str(bond.GetBondType())[0]
-    
+
     """
     Well THAT's confusing...
 
@@ -306,7 +306,7 @@ class SBU(Chem.rdchem.RWMol):
                         bondtype = Chem.rdchem.BondType.DOUBLE
                     elif bond[2] == 'T':
                         bondtype = Chem.rdchem.BondType.TRIPLE
-                    self.AddBond(int(bond[0]), int(bond[1]), bondtype) 
+                    self.AddBond(int(bond[0]), int(bond[1]), bondtype)
 
         if not self.bonds:
             debug(
@@ -603,7 +603,7 @@ class SBU(Chem.rdchem.RWMol):
             "%i not in the connecting points! " % (identifier)
             + ", ".join([str(i.identifier) for i in self.connect_points])
         )
-    
+
     def to_ase_mol(self):
         """Return an ASE version of the molecule. (for visualization?)
 
@@ -617,7 +617,7 @@ class SBU(Chem.rdchem.RWMol):
             ase_atoms.append(atom.element)
             ase_atoms.positions[-1]=atom.coordinates[:3]
         return ase_atoms
-    
+
     def visualize_sbu(self):
         """For convenient visualization of an SBU. Requires ASE and NGLVIEW Modules.
 
@@ -672,4 +672,4 @@ class SBU(Chem.rdchem.RWMol):
         for k, v in self.__dict__.items():
             setattr(result, k, deepcopy(v, memo))
         return result
-        
+

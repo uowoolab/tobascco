@@ -166,6 +166,45 @@ class Generate(object):
         bond_iter = list(self.roundrobin(*[itertools.product([s], s.connect_points) for s in sbus ]))
                                    # if s.name != sbu.name]))
         # don't like how this iterates, but will do for now.
+        rev_bond_iter = reversed(list(bond_iter))
+        ncp1 = len(range(ncps)[0:][::2])
+        ncp2 = len(range(ncps)[1:][::2])
+        all_bonds = itertools.tee(bond_iter, ncps)
+        #bonds1 = itertools.tee(bond_iter, ncp1) 
+        #bonds2 = itertools.tee(rev_bond_iter, ncp2)
+        #bonds2 = itertools.tee(bond_iter, ncp2)
+        #for bond_set in itertools.product(*self.all_bonds(bonds1, bonds2)):
+        for bond_set in itertools.product(*all_bonds):
+            full_bond_set = list(zip(sbu_repr, bond_set))
+            if all([self._valid_bond_pair(i) for i in full_bond_set]):
+                yield [((index, cp1.identifier),(sbu2, cp2)) for 
+                        (sbu1, cp1),(sbu2,cp2) in full_bond_set]
+
+    def _valid_bond_pair(self, set):
+        """Determine if the two SBUs can be bonded.  Currently set to
+        flag true if the two sbus contain matching bond flags, otherwise
+        if they are a (metal|organic) pair
+        """
+        (sbu1, cp1), (sbu2, cp2) = set
+        #print(sbu1.name, cp1.special, cp1.constraint)
+        #print(sbu2.name, cp2.special, cp2.constraint)
+        if all([i is None for i in [cp1.special, cp2.special, cp1.constraint, cp2.constraint]]):
+            return sbu1.is_metal != sbu2.is_metal
+        return (cp1.special == cp2.constraint) and (cp2.special == cp1.constraint)
+
+    def _yield_bonding_sbus(self, sbu, sbus, index=0, p=[]):
+        """Return a tuple of SBUs generated exhaustively.
+        """
+        if index == self.options.structure_sbu_length:
+            yield self.flatten(p)
+        else:
+            index +=1 
+            #TODO(pboyd): Probably ignore bonding with the metal-metal cases, since they will likely always form a periodic boundary right at the beginning of the Build.
+            for iterator in self._gen_bonding_sbus(sbu, sbus, index-1):
+                p[index-1] = list(iterator)
+                q = self.flatten(p)[index-1][1][0]
+                for s in self._yield_bonding_sbus(q, sbus, index, p):
+                    yield s
 
     @property
     def linear_sbus_exist(self):
