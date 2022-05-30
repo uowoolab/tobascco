@@ -1319,8 +1319,8 @@ class Build(object):
                 mets[i.identifier] = 0
             else:
                 orgs[i.identifier] = 0
-        metlist = mets.keys()
-        orglist = orgs.keys()
+        metlist = list(mets.keys())
+        orglist = list(orgs.keys())
         if len(metlist) < self.options.metal_sbu_per_structure:
             actual = len(metlist)
             makeup = self.options.metal_sbu_per_structure - actual

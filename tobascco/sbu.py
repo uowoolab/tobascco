@@ -150,20 +150,28 @@ class SBU(Chem.rdchem.RWMol):
             for idx, atom in enumerate(self.GetAtoms()):
                 x,y,z = self.GetConformer().GetPositions()[atom.GetIdx()]
                 N = atom.GetAtomicNum()
-                if N==54:
+                # [89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102]
+                # 14 total
+                if N==54 or (N >= 89 and N <= 102):
                     atbnd = None
+                    connect_point = ConnectPoint()
+                    connect_point.identifier = len(self.connect_points)+1
+                    connect_point.origin[:3] = np.array([x, y, z])
                     for bond in atom.GetBonds():
                         # didn't realize the bonded neighbouring atoms could be at the beginning of the
                         # bond instance.
                         batm = bond.GetEndAtom() if bond.GetEndAtom().GetAtomicNum() != N else bond.GetBeginAtom()
                         bx,by,bz = self.GetConformer().GetPositions()[batm.GetIdx()]
-                        # Yttrium is from an old version, which is no longer used.
-                        # left as a place-holder in case it would be needed.
+                        # Yttrium is from genstruct. Currently implemented. 
                         if batm.GetAtomicNum() == 39:
+                            vec = np.array([bx - x, by - y, bz - z])
+                            connect_point.y[:3] = vec / np.linalg.norm(vec)
+                            connect_point.genstruct_cp = True
                             del_atoms.append(batm.GetIdx())
                         # Rn is the atom pointing in the direction of SBU bonding.
                         if batm.GetAtomicNum() == 86:
                             vec = np.array([bx - x, by - y, bz - z])
+                            connect_point.z[:3] = vec / np.linalg.norm(vec)
                             del_atoms.append(batm.GetIdx())
                         # This will indicate the 'real' atom that is bonded to this connect point
                         else:
@@ -171,11 +179,18 @@ class SBU(Chem.rdchem.RWMol):
                             batm.SetIsotope(len(self.connect_points)+1)
                             atbnd = batm.GetIdx()
                             connect_pt_atoms.append(atbnd)
+                    
+
+                    if (N >= 89 and N <= 102):
+                        connect_point.special = N%89+1
+                        # special case: N=89 and N=90 <> these are bonding partners.. others will have to be user-defined.
+                        # maybe make all pairs from incrementing actinides.
+                        if connect_point.special%2 == 0:
+                            connect_point.constraint = connect_point.special-1
+                        elif connect_point.special%2 == 1:
+                            connect_point.constraint = connect_point.special+1
+
                     del_atoms.append(atom.GetIdx())
-                    connect_point = ConnectPoint()
-                    connect_point.identifier = len(self.connect_points)+1
-                    connect_point.origin[:3] = np.array([x, y, z])
-                    connect_point.z[:3] = vec / np.linalg.norm(vec)
                     self.connect_points.append(connect_point)
 
         elif (is_metal==True) and (old_format==False):

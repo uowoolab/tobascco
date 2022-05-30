@@ -312,6 +312,13 @@ class Cell(object):
         self.lattice[index][:] = vector.copy()
         self.nlattice[index][:] = vector.copy() / np.linalg.norm(vector)
 
+    def remove(self, index):
+        if index == 0:
+            self.lattice[:2] = self.lattice[1:]
+        elif index == 1:
+            self.lattice[1] = self.lattice[2]
+        self.lattice[2] = np.identity(3)[2]
+
     def to_xyz(self):
         """Returns a list of the strings"""
         lines = []

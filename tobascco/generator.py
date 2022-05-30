@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import itertools
+import numpy as np
 
 from .sbu import SBU_list
 
@@ -63,9 +64,13 @@ class Generate(object):
                     none_spec[(sbu.name, sbu.is_metal)] = cp.identifier
 
         condition1 = set(specials) == set(constraints)
-        condition2 = len([i for i in sbu_set if i.is_metal]) == \
-                self.options.metal_sbu_per_structure
         condition3 = False
+        condition2 = len(set([i.identifier for i in sbu_set if i.is_metal])) == self.options.metal_sbu_per_structure
+        # make sure the old version of the connection points are being used.
+        condition4 = np.all([cp.genstruct_cp for sbu in sbu_set for cp in sbu.connect_points])
+
+        condition5 = len(set([i.identifier for i in sbu_set if not i.is_metal])) == self.options.organic_sbu_per_structure
+
         for sbu, met in none_spec.keys():
             for sbu2, met2 in none_const.keys():
                 if met != met2:
@@ -75,13 +80,13 @@ class Generate(object):
         if incidence is None:
             return ( 
                 (len([i for i in sbu_set if i.is_metal]) == self.options.metal_sbu_per_structure)
-             and condition1 and condition2 and condition3
+             and condition1 and condition2 and condition3 and condition4 and condition5
              )
         else:
             if set(sorted([i.degree for i in sbu_set])) == set(sorted(incidence)):
                 return (
                     (len([i for i in sbu_set if i.is_metal]) == self.options.metal_sbu_per_structure)
-                    and condition1 and condition2 and condition3
+                    and condition1 and condition2 and condition3 and condition4 and condition5
                 )
             else:
                 return False
