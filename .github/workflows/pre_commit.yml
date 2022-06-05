@@ -21,6 +21,7 @@ jobs:
       - name: Install dependencies
         run: |
           python3 -m pip install --upgrade pip setuptools wheel
+          pip install numpy
           pip install  -e .[all,pre-commit,testing]
           pip freeze
       - name: Run pre-commit
