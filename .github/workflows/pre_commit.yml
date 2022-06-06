@@ -27,6 +27,7 @@ jobs:
           brew install nlopt;
           fi
           python3 -m pip install --upgrade pip setuptools wheel
+          pip install --upgrade click==8.0.2
           pip install numpy
           pip install  -e .[all,pre-commit,testing]
           pip freeze
