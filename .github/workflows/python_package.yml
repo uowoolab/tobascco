@@ -30,7 +30,12 @@ jobs:
           fi
       - name: Install dependencies
         run: |
-          sudo apt-get install -y libnlopt-dev
+          if [ "$RUNNER_OS" == "Linux" ]; then
+          sudo apt-get install -y libnlopt-dev;
+          fi
+          if [ "$RUNNER_OS" == "macOS" ]; then
+          brew install nlopt;
+          fi
           python3 -m pip install --upgrade pip setuptools wheel
           pip install -e .[all,testing,pre-commit]
       - name: Test with pytest (numba activated)

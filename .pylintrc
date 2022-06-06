@@ -1,10 +1,10 @@
 [MASTER]
 ignore=docs
-ignore_patterns=versioneer.py,*version.py,*hypervolume.py,models.coregionalized.py
+ignore-patterns=versioneer.py,*version.py,*hypervolume.py,models.coregionalized.py
 
 
 [MESSAGES CONTROL]
-disable = C0330, C0326, locally-disabled, fixme
+disable=C0330,C0326,locally-disabled,fixme
 
 
 [format]
