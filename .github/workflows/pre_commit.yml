@@ -20,6 +20,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: |
+          sudo apt-get install -y libnlopt-dev
           python3 -m pip install --upgrade pip setuptools wheel
           pip install numpy
           pip install  -e .[all,pre-commit,testing]
