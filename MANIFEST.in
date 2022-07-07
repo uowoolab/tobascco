@@ -1,5 +1,5 @@
 include versioneer.py
-recursive-include tobascco
+recursive-include tobascco defaults.ini
 include example
 include tobascco/_version.py
 global-exclude *.py[cod]
