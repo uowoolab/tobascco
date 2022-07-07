@@ -1,2 +1,4 @@
 include versioneer.py
+recursive-include tobascco
+include example
 include tobascco/_version.py
